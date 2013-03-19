@@ -11,16 +11,16 @@
         <script src="../../js/less-1.3.3.min.js"></script>
         <link href="../../docs/assets/css/bootstrap.css" rel="stylesheet"><link href="../../less/button-groups.less" rel="stylesheet/less"><link href="../../less/buttons.less" rel="stylesheet/less"><link href="../../less/dropdowns.less" rel="stylesheet/less"><link href="../../less/alerts.less" rel="stylesheet/less"><link href="css/jPicker-1.1.6.css" rel="stylesheet"><link href="jPicker.css" rel="stylesheet">
         <style>
-            html,body{height: 100%;font-family: "微软雅黑";background-color: #eeeeee;overflow: hidden;}
+            html,body{height: 100%;background-color: #eeeeee;overflow: hidden;}
             .row-fluid{height: 100%;}
             .container{width: 90%;height: 100%;}
             .menuBar{}
             .toolBar {overflow: auto;height: 85%;}
-            .canvasBox{overflow: scroll;height:85%;padding: 0;}
+            .canvasBox{overflow: auto;height:85%;padding: 0;}
             .statusBar{left:auto;right:auto;width: 90%;height: 30px;}
             input[type="file"]{opacity: 0;position: absolute;left: 0;top: 0;height: 25px;}
             .close{font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;}
-            #photo{display: none;}
+            #photo{}
         </style>
 
         <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
@@ -109,29 +109,6 @@
         <script>
             $(document).ready(function(){
                 var canvas=$('#photo')[0],dataURL,img;
-                <!--改变下拉菜单按钮的值-->
-                $('.filter ul li a').click(function(e){
-                    e.preventDefault();
-                    var $clickedA = $(e.target);
-                    var text=$clickedA.text();
-                    $(this).closest('.filter').find('.filterName').text(text);
-                });<!--end改变下拉菜单按钮的值-->
-                <!--调色板-->
-                $('#colorBox').jPicker({
-                    window:
-                    {
-                        expandable: true
-                    }
-                });<!--end调色板-->
-                <!--初始化-->
-                function initImg(container,dataURL){
-                    clear(canvas);
-                    $('#photo').hide();
-                    if(img){$(img).remove();}
-                    img=new Image();
-                    img.src=dataURL;
-                    $(img).appendTo(container);
-                }<!--end初始化-->
                 <!--上传图片-->
                 $('#file').change(function(){
                     if (window.File && window.FileReader && window.FileList && window.Blob) {
@@ -139,7 +116,7 @@
                         var imageType = /image.*/;
                         if (file.type.match(imageType)) {
                             if(file.size >= 512000){
-                                $('#myModal .modal-body').text(file.name+"太大啦");
+                                $('#myModal').find('.modal-body').text(file.name+"太大啦");
                                 $('#myModal').modal({
                                     backdrop:true,
                                     keyboard:true,
@@ -147,14 +124,15 @@
                                 });
                             }else{
                                 var reader = new FileReader();
-                                reader.onload = function(e){
-                                    dataURL=e.target.result;
-                                    initImg($('.canvasBox'),dataURL);
-                                }
+                                reader.onload = function (e) {
+                                    dataURL = e.target.result;
+                                    console.log(dataURL);
+                                    initImg(dataURL);
+                                };
                                 reader.readAsDataURL(file);
                             }
                         }else{
-                            $('#myModal .modal-body').text(file.name+"是图片吗？");
+                            $('#myModal').find('.modal-body').text(file.name+"是图片吗？");
                             $('#myModal').modal({
                                 backdrop:true,
                                 keyboard:true,
@@ -163,17 +141,37 @@
                         }
                     }
                 });<!--end上传图片-->
+                <!--初始化-->
+                function initImg(dataURL){
+                    var context=canvas.getContext("2d");
+                    clear(canvas);
+                    if(img){
+                        $(img).remove();
+                    }
+                    img=new Image();
+                    img.onload = function () {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        context.drawImage(img, 0, 0);
+                    };
+                    img.src=dataURL;
+                }<!--end初始化-->
                 <!--恢复原图-->
                 $('#original').click(function(e){
                     clear(canvas);
-                    $('#photo').hide();
                     e.preventDefault();
-                    $(img).show();
+                    var context=canvas.getContext("2d");
+                    canvas.width=img.width;
+                    canvas.height=img.height;
+                    context.drawImage(img,0,0);
                 });<!--end恢复原图-->
                 <!--反相-->
                 function opposition(img){
                     var context=canvas.getContext("2d");
+                    canvas.width=img.width;
+                    canvas.height=img.height;
                     context.drawImage(img,0,0);
+//                    alert(canvas.width+"  "+canvas.height);
                     var imageData=context.getImageData(0,0,img.width,img.height);
                     var pixels=imageData.data;
                     var n=pixels.length;
@@ -186,9 +184,8 @@
                         pixels[i]=255-R;
                         pixels[i+1]=255-G;
                         pixels[i+2]=255-B;
-                    };
+                    }
                     imageData.data=pixels;
-                    $(img).hide();
                     return imageData;
                 }
                 $('#opposition').click(function(e){
@@ -199,6 +196,8 @@
                 <!--灰度图-->
                 function greyScale(img){
                     var context=canvas.getContext("2d");
+                    canvas.width=img.width;
+                    canvas.height=img.height;
                     context.drawImage(img,0,0);
                     var imageData=context.getImageData(0,0,img.width,img.height);
                     var pixels=imageData.data;
@@ -212,15 +211,16 @@
 
                         var gray=parseInt((R+G+B)/3);
                         pixels[i+1]=pixels[i+2]=pixels[i]=gray;
-                    };
+                    }
                     imageData.data=pixels;
-                    $(img).hide();
                     return imageData;
                 }
                 $('#greyScale').click(function(e){
                     e.preventDefault();
                     displayImg(canvas,greyScale(img));
                 });<!--end灰度图-->
+                <!--二值化-->
+                <!--end二值化-->
                 <!--均值-->
                 function average(array){
                     return sum(array)/array.length;
@@ -244,8 +244,21 @@
                     canvas.width=img.width;
                     canvas.height=img.height;
                     context.putImageData(imageData,0,0);
-                    $('#photo').show();
                 }<!--end处理图像后展示-->
+                <!--改变下拉菜单按钮的值-->
+                $('.filter ul li a').click(function(e){
+                    e.preventDefault();
+                    var $clickedA = $(e.target);
+                    var text=$clickedA.text();
+                    $(this).closest('.filter').find('.filterName').text(text);
+                });<!--end改变下拉菜单按钮的值-->
+                <!--调色板-->
+                $('#colorBox').jPicker({
+                    window:
+                    {
+                        expandable: true
+                    }
+                });<!--end调色板-->
             });
         </script>
     </body>
