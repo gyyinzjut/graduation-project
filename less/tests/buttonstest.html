@@ -92,6 +92,7 @@
                         <li><a href="#" id="binarization">二值化</a></li>
                         <li><a href="#" id="gaussianBlur">高斯模糊</a></li>
                         <li><a href="#" id="sketch">素描效果</a></li>
+                        <li><a href="#" id="sharp">锐化</a></li>
                     </ul>
                 </div><!-- /btn-group -->
 
@@ -105,7 +106,7 @@
             <div class="navbar-fixed-bottom statusBar">
                 <div id="colorBox"><input type="color"></div>
                 <div class="btn-group dropup lineWidth">
-                    <button class="btn">———————————</button>
+                    <button class="btn">—————————</button>
                     <button class="btn dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></button>
                     <ul class="dropdown-menu">
                         <li><a href="#">___________</a></li>
@@ -304,15 +305,16 @@
                     displayImg(canvas,greyScale(getSourceImg(img)));
                 });<!--end黑白效果-->
                 <!--二值化-->
-                function binarization(imageData){
+                function binarization(imageData,treshold){
                     var pixels=imageData.data;
+                    treshold=treshold||127;
                     var n=pixels.length;
                     for (var i = 0; i < n; i+=4) {
                         var R=pixels[i];
                         var G=pixels[i+1];
                         var B=pixels[i+2];
                         var alpha=pixels[i+3];
-                        var gray=parseInt((R+G+B)/3) < 127 ? 0 : 255;
+                        var gray=parseInt(R*0.299+G*0.587+B*0.114)<treshold?0:255;
                         pixels[i+1]=pixels[i+2]=pixels[i]=gray;
                     }
                     imageData.data=pixels;
@@ -328,7 +330,6 @@
                     radius=radius||3;
                     sigma=sigma||radius/3;
                     var h=imageData.height,w=imageData.width;
-                    var n=pixels.length;
                     var R, G, B,alpha;
                     var i, j, k, x, y,gaussSum;
                     var gaussMatrix=Template.gaussMatrix(radius,sigma);
@@ -400,12 +401,78 @@
                     opposition(copyImageData);
                     gaussianBlur(copyImageData,3,9);//radius很大时有复古效果
                     superposition(imageData,copyImageData);
+//                    convolute(imageData,Template.laplace);
 //                    $('.canvasBox').append("<canvas id='canvas1'></canvas>");
 //                    var canvas1=$('#canvas1')[0];
 //                    var ctx1=canvas1.getContext("2d");
 //                    canvas1.width=w;canvas1.height=h;
 //                    ctx1.putImageData(imageData,1,1);
+                    return imageData;
                 }
+                $('#sketch').click(function(e){
+                    e.preventDefault();
+                    displayImg(canvas,sketch(getSourceImg(img)));
+                });<!--end素描效果-->
+                <!--锐化-->
+                $('#sharp').click(function(e){
+                    e.preventDefault();
+                    displayImg(canvas,convolute(getSourceImg(img),Template.laplace));
+                });<!--end锐化-->
+                <!--清除画布-->
+                function clear(canvas){
+                    var context=canvas.getContext("2d");
+                    context.clearRect(0,0,canvas.width,canvas.height);
+                }<!--end清除画布-->
+                <!--处理图像后展示-->
+                function displayImg(canvas,imageData){
+                    clear(canvas);
+                    var context=canvas.getContext("2d");
+                    context.putImageData(imageData,0,0);
+                }<!--end处理图像后展示-->
+//
+                <!--卷积-->
+                function convolute(imageData,matrix){
+                    var pixels=imageData.data;
+                    var h=imageData.height,w=imageData.width;
+                    var R, G, B,alpha;
+                    var i, j, k, x, y,sum=0;
+                    var tempCanvas=document.createElement('canvas');
+                    var tempCtx=tempCanvas.getContext("2d");
+                    var output=tempCtx.createImageData(w,h);
+                    var dst=output.data;
+                    var side=Math.round(Math.sqrt(matrix.length));
+                    var radius=Math.floor(side/2);
+                    var point;
+                    for(y=0;y<h;y++){
+                        for(x=0;x<w;x++){
+                            R=G=B=alpha=0;
+                            sum=0;
+                            for(j=0;j<side;j++){
+                                for(i=0;i<side;i++){
+                                    var my=y+j-radius;
+                                    var mx=x+i-radius;
+                                    if(my>=0&&my<h&&mx>=0&&mx<w){
+                                        point=(my*w+mx)*4;
+                                        R+=pixels[point]*matrix[j*side+i];
+                                        G+=pixels[point+1]*matrix[j*side+i];
+                                        B+=pixels[point+2]*matrix[j*side+i];
+                                        sum += matrix[j*side+i];
+                                    }
+                                }
+                            }
+                            point=(y*w+x)*4;
+                            dst[point]=R/sum;
+                            dst[point+1]=G/sum;
+                            dst[point+2]=B/sum;
+                            dst[point + 3] = 255;//不能漏掉
+                        }
+                    }
+                    output.data=dst;
+                    imageData=output;
+                    $(tempCanvas).remove();
+                    return imageData;
+                }<!--end卷积-->
+                <!--图层混合-->
                 function superposition(baseImageData,mixImageData){
                     var basePixels=baseImageData.data;
                     var mixPixels=mixImageData.data;
@@ -420,24 +487,7 @@
                     }
                     baseImageData.data=basePixels;
                     return baseImageData;
-                }
-                $('#sketch').click(function(e){
-                    e.preventDefault();
-                    displayImg(canvas,sketch(getSourceImg(img)));
-                });<!--end素描效果-->
-                <!--清除画布-->
-                function clear(canvas){
-                    var context=canvas.getContext("2d");
-                    context.clearRect(0,0,canvas.width,canvas.height);
-                }<!--end清除画布-->
-                <!--处理图像后展示-->
-                function displayImg(canvas,pixels){
-                    clear(canvas);
-                    var context=canvas.getContext("2d");
-                    imageData.data=pixels;
-                    context.putImageData(imageData,0,0);
-                }<!--end处理图像后展示-->
-
+                }<!--end图层混合-->
                 var Template={
                     gaussMatrix:function(radius,sigma){
                         var o, p, q;
@@ -456,7 +506,10 @@
                             matrix[i] /= gaussSum;
                         }
                         return matrix;
-                    }  
+                    },
+                    laplace:[  0, -1,  0,
+                                -1,  5, -1,
+                                0, -1,  0 ]
                 };
 //                <!--改变下拉菜单按钮的值-->
 //                $('.filter ul li a').click(function(e){
