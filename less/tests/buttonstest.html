@@ -9,18 +9,41 @@
 
         <!-- Le styles -->
         <script src="../../js/less-1.3.3.min.js"></script>
-        <link href="../../docs/assets/css/bootstrap.css" rel="stylesheet"><link href="../../less/button-groups.less" rel="stylesheet/less"><link href="../../less/buttons.less" rel="stylesheet/less"><link href="../../less/dropdowns.less" rel="stylesheet/less"><link href="../../less/alerts.less" rel="stylesheet/less"><link href="css/jPicker-1.1.6.css" rel="stylesheet"><link href="jPicker.css" rel="stylesheet">
+        <link href="../../docs/assets/css/bootstrap.css" rel="stylesheet">
+        <link href="../../less/button-groups.less" rel="stylesheet/less">
+        <link href="../../less/buttons.less" rel="stylesheet/less">
+        <link href="../../less/dropdowns.less" rel="stylesheet/less">
+        <link href="../../less/alerts.less" rel="stylesheet/less">
+        <!--<link href="css/jPicker-1.1.6.css" rel="stylesheet">-->
+        <!--<link href="jPicker.css" rel="stylesheet">-->
         <style>
             html,body{height: 100%;background-color: #eeeeee;overflow: hidden;}
             .row-fluid{height: 100%;}
             .container{width: 90%;height: 100%;}
             .menuBar{}
             .toolBar {overflow: auto;height: 85%;}
-            .canvasBox{overflow: auto;height:85%;padding: 0;}
+            .canvasBox{overflow: auto;height:85%;padding: 0;position: relative;}
             .statusBar{left:auto;right:auto;width: 90%;height: 30px;}
             input[type="file"]{opacity: 0;position: absolute;left: 0;top: 0;height: 25px;}
+            input[type="color"]{width: 60px;}
             .close{font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;}
-            #photo{}
+            canvas{position: absolute;}
+            .newFileTable {margin: 30px 0 0 0;width: 100%;}
+            .modal-body{text-align: left;}
+            .modal-body table tr{vertical-align: top;}
+            tbody {display: table-row-group;vertical-align: middle;border-color: inherit;}
+            .newFileTable .labelTD {width: 33%;text-align: right;line-height: 24px;}
+            .modal-body table td {text-align: left;font-weight: normal;font-size: 14px;}
+            .newFileTable tr {height: 30px;}
+            .newFileTable .formTD {text-align: left;padding-left: 15px;vertical-align: middle;}
+
+            .newFileTable .formTD select {width: 110px;height: 23px;padding: 0;}
+            .newCanvasModalEntry {width: 120px;height: 30px;background-color: white;position: relative;}
+            .newFileTable .formTD .newFileTextEntry {background-color: #fff;width: 90px;height: 21px;padding: 0;}
+            .newCanvasEntryLabel {font-size: 11px;color: #707F75;margin: 2px 10px 0 10px;position: absolute;top: 0;right: 0;}
+            .maxSizePrint {margin-top: 10px;font-size: 10px;color: #80988A;margin-left: 17%;}
+            .statusBar .lineWidth{margin-bottom: 10px;}
+            #colorBox{display: inline-block;}
         </style>
 
         <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
@@ -40,7 +63,7 @@
                     <button class="btn dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></button>
                     <ul class="dropdown-menu">
                         <li><a href="#">打开图片<input type="file" name="file" id="file" size="20"/></a></li>
-                        <li><a href="#">新建图层</a></li>
+                        <li><a data-toggle="modal" href="#chooseCanvas"  data-keyboard="true" data-backdrop="static">新建图层</a></li>
                         <li><a href="#">退出</a></li>
                         <li class="divider"></li>
                         <li><a href="#">保存</a></li>
@@ -66,8 +89,9 @@
                         <li><a href="#" id="original">原图</a></li>
                         <li><a href="#" id="opposition">底片效果</a></li>
                         <li><a href="#" id="greyScale">黑白效果</a></li>
-                        <li><a href="#">二值化</a></li>
-                        <li><a href="#">素描效果</a></li>
+                        <li><a href="#" id="binarization">二值化</a></li>
+                        <li><a href="#" id="gaussianBlur">高斯模糊</a></li>
+                        <li><a href="#" id="sketch">素描效果</a></li>
                     </ul>
                 </div><!-- /btn-group -->
 
@@ -79,8 +103,8 @@
                 </div>
             </div>
             <div class="navbar-fixed-bottom statusBar">
-                <div id="colorBox"></div>
-                <div class="btn-group dropup">
+                <div id="colorBox"><input type="color"></div>
+                <div class="btn-group dropup lineWidth">
                     <button class="btn">———————————</button>
                     <button class="btn dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></button>
                     <ul class="dropdown-menu">
@@ -92,23 +116,90 @@
                 </div><!-- /btn-group -->
             </div>
         </div> <!-- /container -->
-        <div class="modal fade hide in alert-error" id="myModal">
+        <div class="modal fade hide in alert-error" id="alertError">
             <div class="modal-header">
                 <a class="close" data-dismiss="modal">×</a>
                 <h3>FAIL!</h3>
             </div>
+            <div class="modal-body"></div>
+        </div>
+        <div id="chooseCanvas" class="modal hide fade in">
+            <div class="modal-header">
+                <a class="close" data-dismiss="modal">×</a>
+                <h3>New File</h3>
+            </div>
             <div class="modal-body">
-                图片太大啦
+                <table class="newFileTable">
+                    <tbody><tr>
+                        <td class="labelTD">Preset sizes</td>
+                        <td class="formTD">
+                            <select class="customSizeSelect">
+                                <option rel="0" selected="true" value="">Custom</option>
+                                <option rel="500" value="500x400">500×400</option>
+                                <option rel="500" value="500x500">500×500</option>
+                                <option rel="667" value="667x500">667×500</option>
+                                <option rel="800" value="800x800">800×800</option>
+                                <option rel="1000" value="1000x800">1000×800</option>
+                                <option rel="1024" value="1024x768">1024×768</option>
+                                <option rel="1280" value="1280x800">1280×800</option>
+                                <option rel="1600" value="1600x900" style="display: none;">1600×900</option>
+                                <option rel="1600" value="1600x1600" style="display: none;">1600×1600</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="labelTD">Width</td>
+                        <td class="formTD">
+                            <div class="newCanvasModalEntry">
+                                <input type="text" class="widthEntry newFileTextEntry" maxlength="5" placeholder="989">
+                                <div class="newCanvasEntryLabel">PX</div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="labelTD">Height</td>
+                        <td class="formTD">
+                            <div class="newCanvasModalEntry">
+                                <input type="text" class="heightEntry newFileTextEntry" maxlength="5" placeholder="445">
+                                <div class="newCanvasEntryLabel">PX</div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="labelTD">Background</td>
+                        <td class="formTD">
+                            <select class="customBGSelect">
+                                <option selected="true" value="white">White</option>
+                                <option value="black">Black</option>
+                                <option value="transparent">Transparent</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <div class="maxSizePrint">Maximum canvas size: 2000×2000px</div>
+                        </td>
+                    </tr>
+                    </tbody></table>
+            </div>
+            <div class="modal-footer">
+                <a href="#" class="btn" data-dismiss="modal">取消</a>
+                <a href="#" class="btn btn-primary" data-dismiss="modal">确定</a>
             </div>
         </div>
-
         <!-- Le javascript
         ================================================== -->
         <!-- Placed at the end of the document so the pages load faster -->
         <script src="../../docs/assets/js/jquery.js"></script><script src="../../docs/assets/js/bootstrap-transition.js"></script><script src="../../docs/assets/js/bootstrap-alert.js"></script><script src="../../docs/assets/js/bootstrap-modal.js"></script><script src="../../docs/assets/js/bootstrap-dropdown.js"></script><script src="../../docs/assets/js/bootstrap-scrollspy.js"></script><script src="../../docs/assets/js/bootstrap-tab.js"></script><script src="../../docs/assets/js/bootstrap-tooltip.js"></script><script src="../../docs/assets/js/bootstrap-popover.js"></script><script src="../../docs/assets/js/bootstrap-button.js"></script><script src="../../docs/assets/js/bootstrap-collapse.js"></script><script src="../../docs/assets/js/bootstrap-carousel.js"></script><script src="../../docs/assets/js/bootstrap-typeahead.js"></script><script src="jpicker-1.1.6.js"></script>
         <script>
             $(document).ready(function(){
-                var canvas=$('#photo')[0],dataURL,img;
+                var canvas=$('#photo')[0],dataURL,img,imageData;
+//                var context=canvas.getContext("2d");
+//                context.drawImage(img,0,0);
+////                    alert(canvas.width+"  "+canvas.height);
+//                var imageData=context.getImageData(0,0,img.width,img.height);
+//                var pixels=imageData.data;
+//                var n=pixels.length;
                 <!--上传图片-->
                 $('#file').change(function(){
                     if (window.File && window.FileReader && window.FileList && window.Blob) {
@@ -116,8 +207,8 @@
                         var imageType = /image.*/;
                         if (file.type.match(imageType)) {
                             if(file.size >= 512000){
-                                $('#myModal').find('.modal-body').text(file.name+"太大啦");
-                                $('#myModal').modal({
+                                $('#alertError').find('.modal-body').text(file.name+"太大啦");
+                                $('#alertError').modal({
                                     backdrop:true,
                                     keyboard:true,
                                     show:true
@@ -132,8 +223,8 @@
                                 reader.readAsDataURL(file);
                             }
                         }else{
-                            $('#myModal').find('.modal-body').text(file.name+"是图片吗？");
-                            $('#myModal').modal({
+                            $('#alertError').find('.modal-body').text(file.name+"是图片吗？");
+                            $('#alertError').modal({
                                 backdrop:true,
                                 keyboard:true,
                                 show:true
@@ -153,26 +244,24 @@
                         canvas.width = img.width;
                         canvas.height = img.height;
                         context.drawImage(img, 0, 0);
+                        imageData=context.getImageData(0,0,img.width,img.height);
                     };
                     img.src=dataURL;
                 }<!--end初始化-->
                 <!--恢复原图-->
+                function getSourceImg(img){
+                    var context=canvas.getContext("2d");
+                    context.drawImage(img,0,0);
+                    imageData=context.getImageData(0,0,img.width,img.height);
+                    return imageData;
+                }
                 $('#original').click(function(e){
                     clear(canvas);
                     e.preventDefault();
-                    var context=canvas.getContext("2d");
-                    canvas.width=img.width;
-                    canvas.height=img.height;
-                    context.drawImage(img,0,0);
+                    displayImg(canvas,getSourceImg(img));
                 });<!--end恢复原图-->
                 <!--反相-->
-                function opposition(img){
-                    var context=canvas.getContext("2d");
-                    canvas.width=img.width;
-                    canvas.height=img.height;
-                    context.drawImage(img,0,0);
-//                    alert(canvas.width+"  "+canvas.height);
-                    var imageData=context.getImageData(0,0,img.width,img.height);
+                function opposition(imageData){
                     var pixels=imageData.data;
                     var n=pixels.length;
                     for (var i = 0; i < n; i+=4) {
@@ -190,16 +279,11 @@
                 }
                 $('#opposition').click(function(e){
                     e.preventDefault();
-                    displayImg(canvas,opposition(img));
+                    displayImg(canvas,opposition(getSourceImg(img)));
 
                 });<!--end反相-->
-                <!--灰度图-->
-                function greyScale(img){
-                    var context=canvas.getContext("2d");
-                    canvas.width=img.width;
-                    canvas.height=img.height;
-                    context.drawImage(img,0,0);
-                    var imageData=context.getImageData(0,0,img.width,img.height);
+                <!--黑白效果-->
+                function greyScale(imageData){
                     var pixels=imageData.data;
                     var n=pixels.length;
                     for (var i = 0; i < n; i+=4) {
@@ -209,7 +293,7 @@
                         var alpha=pixels[i+3];
 
 
-                        var gray=parseInt((R+G+B)/3);
+                        var gray=parseInt(R*0.299+G*0.587+B*0.114);
                         pixels[i+1]=pixels[i+2]=pixels[i]=gray;
                     }
                     imageData.data=pixels;
@@ -217,48 +301,189 @@
                 }
                 $('#greyScale').click(function(e){
                     e.preventDefault();
-                    displayImg(canvas,greyScale(img));
-                });<!--end灰度图-->
+                    displayImg(canvas,greyScale(getSourceImg(img)));
+                });<!--end黑白效果-->
                 <!--二值化-->
-                <!--end二值化-->
-                <!--均值-->
-                function average(array){
-                    return sum(array)/array.length;
-                }<!--end均值-->
-                <!--求和-->
-                function sum(array){
-                    var sum=0;
-                    for(var i in array){
-                        sum+=Number(array[i]);
+                function binarization(imageData){
+                    var pixels=imageData.data;
+                    var n=pixels.length;
+                    for (var i = 0; i < n; i+=4) {
+                        var R=pixels[i];
+                        var G=pixels[i+1];
+                        var B=pixels[i+2];
+                        var alpha=pixels[i+3];
+                        var gray=parseInt((R+G+B)/3) < 127 ? 0 : 255;
+                        pixels[i+1]=pixels[i+2]=pixels[i]=gray;
                     }
-                    return sum;
-                }<!--end求和-->
+                    imageData.data=pixels;
+                    return imageData;
+                }
+                $('#binarization').click(function(e){
+                    e.preventDefault();
+                    displayImg(canvas,binarization(getSourceImg(img)));
+                });<!--end二值化-->
+                <!--高斯模糊-->
+                function gaussianBlur(imageData,radius,sigma){
+                    var pixels=imageData.data;
+                    radius=radius||3;
+                    sigma=sigma||radius/3;
+                    var h=imageData.height,w=imageData.width;
+                    var n=pixels.length;
+                    var R, G, B,alpha;
+                    var i, j, k, x, y,gaussSum;
+                    var gaussMatrix=Template.gaussMatrix(radius,sigma);
+
+                    for(y=0;y<h;y++){
+                        for(x=0;x<w;x++){
+                            R=G=B=alpha=0;
+                            gaussSum=0;
+                            for(j=-radius;j<=radius;j++){
+                                k=x+j;
+                                if(k>=0 && k<w){
+                                    i=(y*w+k)*4;
+                                    R+=pixels[i]*gaussMatrix[j+radius];
+                                    G+=pixels[i+1]*gaussMatrix[j+radius];
+                                    B+=pixels[i+2]*gaussMatrix[j+radius];
+                                    gaussSum += gaussMatrix[j + radius];
+                                }
+                            }
+                            i=(y*w+x)*4;
+//                            pixels[i]=R>255?255:R;
+//                            pixels[i+1]=G>255?255:G;
+//                            pixels[i+2]=B>255?255:B;
+
+                            pixels[i] = R / gaussSum;
+                            pixels[i + 1] = G / gaussSum;
+                            pixels[i + 2] = B / gaussSum;
+                        }
+                    }
+                    for(x=0;x<w;x++){
+                        for(y=0;y<h;y++){
+                            R=G=B=alpha=0;
+                            gaussSum=0;
+                            for(j=-radius;j<=radius;j++){
+                                k=y+j;
+                                if(k>=0 && k<h){
+                                    i=(k*w+x)*4;
+                                    R+=pixels[i]*gaussMatrix[j+radius];
+                                    G+=pixels[i+1]*gaussMatrix[j+radius];
+                                    B+=pixels[i+2]*gaussMatrix[j+radius];
+                                    gaussSum += gaussMatrix[j + radius];
+                                }
+                            }
+                            i=(y*w+x)*4;
+//                            pixels[i]=R>255?255:R;
+//                            pixels[i+1]=G>255?255:G;
+//                            pixels[i+2]=B>255?255:B;
+                            pixels[i] = R / gaussSum;
+                            pixels[i + 1] = G / gaussSum;
+                            pixels[i + 2] = B / gaussSum;
+                        }
+                    }
+                    imageData.data=pixels;
+                    return imageData;
+                }
+                $('#gaussianBlur').click(function(e){
+                    e.preventDefault();
+                    displayImg(canvas,gaussianBlur(getSourceImg(img),3,1));
+                });<!--end高斯模糊-->
+                <!--素描效果-->
+                function sketch(imageData){
+                    var context=canvas.getContext("2d");
+                    var pixels=imageData.data;
+                    var n=pixels.length;
+                    var w=imageData.width,h=imageData.height;
+                    greyScale(imageData);
+                    clear(canvas);
+                    context.putImageData(imageData,0,0);
+                    var copyImageData=context.getImageData(0,0,w,h);
+                    opposition(copyImageData);
+                    gaussianBlur(copyImageData,3,9);//radius很大时有复古效果
+                    superposition(imageData,copyImageData);
+//                    $('.canvasBox').append("<canvas id='canvas1'></canvas>");
+//                    var canvas1=$('#canvas1')[0];
+//                    var ctx1=canvas1.getContext("2d");
+//                    canvas1.width=w;canvas1.height=h;
+//                    ctx1.putImageData(imageData,1,1);
+                }
+                function superposition(baseImageData,mixImageData){
+                    var basePixels=baseImageData.data;
+                    var mixPixels=mixImageData.data;
+                    for (var i = 0, len = basePixels.length; i < len; i += 4) {
+                        basePixels[i] = basePixels[i] + (basePixels[i] * mixPixels[i]) / (255 - mixPixels[i]);
+                        basePixels[i + 1] = basePixels[i + 1] + (basePixels[i + 1] * mixPixels[i + 1]) / (255 - mixPixels[i + 1]);
+                        basePixels[i + 2] = basePixels[i + 2] + (basePixels[i + 2] * mixPixels[i + 2]) / (255 - mixPixels[i + 2]);
+
+//                        basePixels[i] = (basePixels[i] + mixPixels[i] - 255) * 255 / mixPixels[i];
+//                        basePixels[i + 1] = (basePixels[i+1] + mixPixels[i+1] - 255) * 255 / mixPixels[i+1];
+//                        basePixels[i + 2] = (basePixels[i+2] + mixPixels[i+2] - 255) * 255 / mixPixels[i+2];
+                    }
+                    baseImageData.data=basePixels;
+                    return baseImageData;
+                }
+                $('#sketch').click(function(e){
+                    e.preventDefault();
+                    displayImg(canvas,sketch(getSourceImg(img)));
+                });<!--end素描效果-->
                 <!--清除画布-->
                 function clear(canvas){
                     var context=canvas.getContext("2d");
                     context.clearRect(0,0,canvas.width,canvas.height);
                 }<!--end清除画布-->
                 <!--处理图像后展示-->
-                function displayImg(canvas,imageData){
+                function displayImg(canvas,pixels){
+                    clear(canvas);
                     var context=canvas.getContext("2d");
-                    canvas.width=img.width;
-                    canvas.height=img.height;
+                    imageData.data=pixels;
                     context.putImageData(imageData,0,0);
                 }<!--end处理图像后展示-->
-                <!--改变下拉菜单按钮的值-->
-                $('.filter ul li a').click(function(e){
-                    e.preventDefault();
-                    var $clickedA = $(e.target);
-                    var text=$clickedA.text();
-                    $(this).closest('.filter').find('.filterName').text(text);
-                });<!--end改变下拉菜单按钮的值-->
-                <!--调色板-->
-                $('#colorBox').jPicker({
-                    window:
-                    {
-                        expandable: true
-                    }
-                });<!--end调色板-->
+
+                var Template={
+                    gaussMatrix:function(radius,sigma){
+                        var o, p, q;
+                        var matrix = [];
+                        var gaussSum = 0;
+                        var i;
+                        p=1/(Math.sqrt(2*Math.PI)*sigma);
+                        q=-1/(2*sigma*sigma);
+                        for(i=-radius;i<=radius;i++){
+                            o=p*Math.exp(q*i*i);
+                            matrix.push(o);
+                            gaussSum+=o;
+                        }
+
+                        for (i = 0; i < matrix.length; i++) {
+                            matrix[i] /= gaussSum;
+                        }
+                        return matrix;
+                    }  
+                };
+//                <!--改变下拉菜单按钮的值-->
+//                $('.filter ul li a').click(function(e){
+//                    e.preventDefault();
+//                    var $clickedA = $(e.target);
+//                    var text=$clickedA.text();
+//                    $(this).closest('.filter').find('.filterName').text(text);
+//                });<!--end改变下拉菜单按钮的值-->
+//                <!--调色板-->
+//                $('#colorBox').jPicker({
+//                    window:
+//                    {
+//                        expandable: true
+//                    }
+//                });<!--end调色板-->
+                <!--均值-->
+//                function average(array){
+//                    return sum(array)/array.length;
+//                }<!--end均值-->
+//                <!--求和-->
+//                function sum(array){
+//                    var sum=0;
+//                    for(var i in array){
+//                        sum+=Number(array[i]);
+//                    }
+//                    return sum;
+//                }<!--end求和-->
             });
         </script>
     </body>
