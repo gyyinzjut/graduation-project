@@ -280,7 +280,7 @@
                 }
                 $('#opposition').click(function(e){
                     e.preventDefault();
-                    displayImg(canvas,opposition(getSourceImg(img)));
+                    displayImg(canvas,opposition(imageData));
 
                 });<!--end反相-->
                 <!--黑白效果-->
@@ -302,7 +302,7 @@
                 }
                 $('#greyScale').click(function(e){
                     e.preventDefault();
-                    displayImg(canvas,greyScale(getSourceImg(img)));
+                    displayImg(canvas,greyScale(imageData));
                 });<!--end黑白效果-->
                 <!--二值化-->
                 function binarization(imageData,treshold){
@@ -322,7 +322,7 @@
                 }
                 $('#binarization').click(function(e){
                     e.preventDefault();
-                    displayImg(canvas,binarization(getSourceImg(img)));
+                    displayImg(canvas,binarization(imageData));
                 });<!--end二值化-->
                 <!--高斯模糊-->
                 function gaussianBlur(imageData,radius,sigma){
@@ -386,13 +386,12 @@
                 }
                 $('#gaussianBlur').click(function(e){
                     e.preventDefault();
-                    displayImg(canvas,gaussianBlur(getSourceImg(img),3,1));
+                    displayImg(canvas,gaussianBlur(imageData,3,1));
                 });<!--end高斯模糊-->
                 <!--素描效果-->
                 function sketch(imageData){
                     var context=canvas.getContext("2d");
                     var pixels=imageData.data;
-                    var n=pixels.length;
                     var w=imageData.width,h=imageData.height;
                     greyScale(imageData);
                     clear(canvas);
@@ -411,12 +410,12 @@
                 }
                 $('#sketch').click(function(e){
                     e.preventDefault();
-                    displayImg(canvas,sketch(getSourceImg(img)));
+                    displayImg(canvas,sketch(imageData));
                 });<!--end素描效果-->
                 <!--锐化-->
                 $('#sharp').click(function(e){
                     e.preventDefault();
-                    displayImg(canvas,convolute(getSourceImg(img),Template.laplace));
+                    displayImg(canvas,convolute(imageData,Template.laplace));
                 });<!--end锐化-->
                 <!--清除画布-->
                 function clear(canvas){
@@ -428,14 +427,15 @@
                     clear(canvas);
                     var context=canvas.getContext("2d");
                     context.putImageData(imageData,0,0);
+                    console.log(canvas.toDataURL());
                 }<!--end处理图像后展示-->
 //
-                <!--卷积-->
-                function convolute(imageData,matrix){
+                <!--卷积(有问题)-->
+                function convolute(imageData,matrix, opaque){
                     var pixels=imageData.data;
                     var h=imageData.height,w=imageData.width;
                     var R, G, B,alpha;
-                    var i, j, k, x, y,sum=0;
+                    var i, j, x, y,sum=0;
                     var tempCanvas=document.createElement('canvas');
                     var tempCtx=tempCanvas.getContext("2d");
                     var output=tempCtx.createImageData(w,h);
@@ -456,6 +456,7 @@
                                         R+=pixels[point]*matrix[j*side+i];
                                         G+=pixels[point+1]*matrix[j*side+i];
                                         B+=pixels[point+2]*matrix[j*side+i];
+                                        alpha+=pixels[point+3]*matrix[j*side+i];
                                         sum += matrix[j*side+i];
                                     }
                                 }
@@ -464,12 +465,16 @@
                             dst[point]=R/sum;
                             dst[point+1]=G/sum;
                             dst[point+2]=B/sum;
-                            dst[point + 3] = 255;//不能漏掉
+                            dst[point + 3] = alpha/sum+(opaque?(255-alpha/sum):0);//不能漏掉
                         }
                     }
-                    output.data=dst;
-                    imageData=output;
-                    $(tempCanvas).remove();
+//                    for(var i in pixels){
+//                        pixels[i]=dst[i];
+//                    }//较慢
+                    $.each(pixels,function(i){
+                        pixels[i]=dst[i];
+                    });
+//                    imageData=output;
                     return imageData;
                 }<!--end卷积-->
                 <!--图层混合-->
