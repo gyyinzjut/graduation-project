@@ -4123,7 +4123,7 @@
         if (arguments.length >= 3) {
           x = arguments[1];
           y = arguments[2];
-          if (x < 0 || y < 0 || y >= image.height || x >= image.width) throw "x and y must be non-negative and less than the dimensions of the image";
+          if (x < 0 || y < 0 || y >= image.height || x >= image.width) throw "x and y must be non-negative and css than the dimensions of the image";
         } else {
           x = image.width >>> 1;
           y = image.height >>> 1
