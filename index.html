@@ -16,7 +16,7 @@
         <style>
             html,body{height: 100%;background-color: #eeeeee;overflow: hidden;}
             .row-fluid{height: 100%;}
-            .container{width: 90%;height: 100%;}
+            .container{width: 98%;height: 100%;}
             .menuBar{}
             .toolBar {overflow: auto;height: 85%;}
             .canvasBox{overflow: auto;height:85%;padding: 0;position: relative;}
@@ -82,7 +82,7 @@
 
                 <div class="btn-group dropdown filter">
                     <button class="btn filterName">滤镜</button>
-                    <button class="btn dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></button>
+                    <button class="btn dropdown-toggle disabled" data-toggle="dropdown"><span class="caret"></span></button>
                     <ul class="dropdown-menu">
                         <li><a href="#" id="original">原图</a></li>
                         <li><a href="#" id="opposition">底片效果</a></li>
@@ -99,9 +99,11 @@
             </div><!-- /btn-toolbar -->
             <div class="row-fluid clearfix">
                 <div class="span2 toolBar well">
-                    <input type="range" />
-                    <input type="range" />
-                    <input type="range" />
+                    <div class="control">
+                        亮度<input type="range" class="brightness" disabled=true />
+                        对比度<input type="range" class="contrast" disabled=true />
+                        饱和度<input type="range" class="saturation" disabled=true />
+                    </div>
                 </div>
                 <div class="span10 canvasBox well">
                     <canvas id="photo"></canvas>
@@ -249,6 +251,8 @@
                         imageData=context.getImageData(0,0,img.width,img.height);
                     };
                     img.src=dataURL;
+                    $('.control input').attr('disabled',false);
+                    $('.filter .dropdown-toggle').removeClass('disabled');
                 }<!--end初始化-->
                 <!--恢复原图-->
                 function getSourceImg(img){
@@ -557,6 +561,19 @@
                                 -1, 0, 1 ]},
                     other:{'0':[1,1,1,1,0.7,-1,-1,-1,-1]}
                 };
+
+                <!--亮度调节-->
+                function brightness(){
+
+                }<!--end亮度调节-->
+                <!--对比度调节-->
+                function contrast(){
+
+                }<!--end对比度调节-->
+                <!--饱和度调节-->
+                function saturation(){
+
+                }<!--end饱和度调节-->
 //                <!--改变下拉菜单按钮的值-->
 //                $('.filter ul li a').click(function(e){
 //                    e.preventDefault();
