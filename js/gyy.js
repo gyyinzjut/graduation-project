@@ -31,9 +31,9 @@ $(document).ready(function(){
             }
         }
     });<!--end上传图片-->
-    var Filter=function(canvas,imageData){
+    var Filter=function(canvas,imgData){
         this.canvas=canvas;
-        this.imageData=imageData;
+        this.imageData=imgData;
     }
     Filter.prototype={
         constructor:Filter,
@@ -75,8 +75,8 @@ $(document).ready(function(){
         displayImg(canvas,getSourceImg(img));
     });<!--end恢复原图-->
     <!--反相-->
-    function opposition(imageData){
-        var pixels=imageData.data;
+    function opposition(imgData){
+        var pixels=imgData.data;
         var n=pixels.length;
         for (var i = 0; i < n; i+=4) {
             var R=pixels[i];
@@ -88,8 +88,8 @@ $(document).ready(function(){
             pixels[i+1]=255-G;
             pixels[i+2]=255-B;
         }
-        imageData.data=pixels;
-        return imageData;
+        imgData.data=pixels;
+        return imgData;
     }
     $('#opposition').click(function(e){
         e.preventDefault();
@@ -97,8 +97,8 @@ $(document).ready(function(){
 
     });<!--end反相-->
     <!--黑白效果-->
-    function greyScale(imageData){
-        var pixels=imageData.data;
+    function greyScale(imgData){
+        var pixels=imgData.data;
         var n=pixels.length;
         for (var i = 0; i < n; i+=4) {
             var R=pixels[i];
@@ -107,19 +107,20 @@ $(document).ready(function(){
             var alpha=pixels[i+3];
 
 
-            var gray=parseInt(R*0.299+G*0.587+B*0.114);
-            pixels[i+1]=pixels[i+2]=pixels[i]=gray;
+            var grey=parseInt(R*0.299+G*0.587+B*0.114);
+//            var grey=(pixels[i+1]+pixels[i+2]+pixels[i])/3;
+            pixels[i+1]=pixels[i+2]=pixels[i]=grey;
         }
-        imageData.data=pixels;
-        return imageData;
+        imgData.data=pixels;
+        return imgData;
     }
     $('#greyScale').click(function(e){
         e.preventDefault();
         displayImg(canvas,greyScale(getSourceImg(img)));
     });<!--end黑白效果-->
     <!--二值化-->
-    function treshold(imageData,treshold){
-        var pixels=imageData.data;
+    function treshold(imgData,treshold){
+        var pixels=imgData.data;
         treshold=treshold||127;
         var n=pixels.length;
         for (var i = 0; i < n; i+=4) {
@@ -130,19 +131,19 @@ $(document).ready(function(){
             var gray=parseInt(R*0.299+G*0.587+B*0.114)<treshold?0:255;
             pixels[i+1]=pixels[i+2]=pixels[i]=gray;
         }
-        imageData.data=pixels;
-        return imageData;
+        imgData.data=pixels;
+        return imgData;
     }
     $('#binarization').click(function(e){
         e.preventDefault();
         displayImg(canvas,treshold(getSourceImg(img)));
     });<!--end二值化-->
     <!--高斯模糊-->
-    function gaussianBlur(imageData,radius,sigma){
-        var pixels=imageData.data;
+    function gaussianBlur(imgData,radius,sigma){
+        var pixels=imgData.data;
         radius=radius||3;
         sigma=sigma||radius/3;
-        var h=imageData.height,w=imageData.width;
+        var h=imgData.height,w=imgData.width;
         var R, G, B,alpha;
         var i, j, k, x, y,gaussSum;
         var gaussMatrix=Template.gaussMatrix(radius,sigma);
@@ -194,32 +195,32 @@ $(document).ready(function(){
                 pixels[i + 2] = B / gaussSum;
             }
         }
-        imageData.data=pixels;
-        return imageData;
+        imgData.data=pixels;
+        return imgData;
     }
     $('#gaussianBlur').click(function(e){
         e.preventDefault();
         displayImg(canvas,gaussianBlur(getSourceImg(img),3,1));
     });<!--end高斯模糊-->
     <!--素描效果-->
-    function sketch(imageData){
+    function sketch(imgData){
         var context=canvas.getContext("2d");
-        var pixels=imageData.data;
-        var w=imageData.width,h=imageData.height;
-        greyScale(imageData);
+        var pixels=imgData.data;
+        var w=imgData.width,h=imgData.height;
+        greyScale(imgData);
         clear(canvas);
-        context.putImageData(imageData,0,0);
+        context.putImageData(imgData,0,0);
         var copyImageData=context.getImageData(0,0,w,h);
         opposition(copyImageData);
         gaussianBlur(copyImageData,3,9);//radius很大时有复古效果
-        superposition(imageData,copyImageData);
+        superposition(imgData,copyImageData);
 //                    convolute(imageData,Template.laplace);
 //                    $('.canvasBox').append("<canvas id='canvas1'></canvas>");
 //                    var canvas1=$('#canvas1')[0];
 //                    var ctx1=canvas1.getContext("2d");
 //                    canvas1.width=w;canvas1.height=h;
 //                    ctx1.putImageData(imageData,1,1);
-        return imageData;
+        return imgData;
     }
     $('#sketch').click(function(e){
         e.preventDefault();
@@ -264,17 +265,17 @@ $(document).ready(function(){
         context.clearRect(0,0,canvas.width,canvas.height);
     }<!--end清除画布-->
     <!--处理图像后展示-->
-    function displayImg(canvas,imageData){
+    function displayImg(canvas,imgData){
         clear(canvas);
         var context=canvas.getContext("2d");
-        context.putImageData(imageData,0,0);
+        context.putImageData(imgData,0,0);
 //                    console.log(canvas.toDataURL());
     }<!--end处理图像后展示-->
 //
     <!--卷积-->
-    function convolute(imageData,matrix){
-        var pixels=imageData.data;
-        var h=imageData.height,w=imageData.width;
+    function convolute(imgData,matrix){
+        var pixels=imgData.data;
+        var h=imgData.height,w=imgData.width;
         var R, G, B,alpha;
         var i, j, x, y,sum=0;
         var tempCanvas=document.createElement('canvas');
@@ -368,11 +369,35 @@ $(document).ready(function(){
                     -1, 0, 1 ]},
         other:{'0':[1,1,1,1,0.7,-1,-1,-1,-1]}
     };
+//    直方图
+    function getHistogram(imgData){
+        var pixels=imgData.data;
+        var h=imgData.height,w=imgData.width;
+        var value=[];
+        for(var i=0;i<256;i++) value[i]=0;
+        for(y=0;y<h;y++){
+            for(x=0;x<w;x++){
+                value[pixels[(y*w+x)*4]]++;
+            }
+        }
+        return value;
+    }
+//    end直方图
 
+//    <!--平均亮度计算-->
+    function AveBrightness(imgData){
+        var pixels=imgData.data;
+        var n=pixels.length;
+        var total=0;
+        var histogram=getHistogram(greyScale(imgData));
+        for(var i=0;i<256;i++){
+            total+=histogram[i]*i;
+        }
+        return total/(n/4);
+    }//<!--end平均亮度计算-->
     <!--亮度调节-->
-    function brightness(imageData){
-        var valOfRange=Number($('.brightness').val());
-        var pixels=imageData.data;
+    function brightness(imgData,valOfRange,xxxxx){
+        var pixels=imgData.data;
         var n=pixels.length;
         for (var i = 0; i < n; i+=4) {
             var R=pixels[i];
@@ -381,26 +406,75 @@ $(document).ready(function(){
             var alpha=pixels[i+3];
             var HSL=rgbToHsl(R,G,B);
             var H=HSL[0],S=HSL[1],L=HSL[2];
-            L = L * ( 1 + valOfRange);
+            if(xxxxx==1){L=(1+valOfRange)/L}
+            else{L = L * ( 1 + valOfRange);}
+
             var RGB=hslToRgb(H,S,L);
             pixels[i]=RGB[0];
             pixels[i+1]=RGB[1];
             pixels[i+2]=RGB[2];
         }
-        imageData.data=pixels;
-        return imageData;
+        imgData.data=pixels;
+        return imgData;
     }<!--end亮度调节-->
+    var lastValue=0;
     $('.brightness').change(function(){
-        displayImg(canvas,brightness(getSourceImg(img)));
+        var xxxxx=0;
+//        if(!lastValue) var lastValue=0;
+        var val=Number($(this).val());
+        if(val>0&&val<lastValue) xxxxx=1;
+//        var valOfRange=val-lastValue;
+        lastValue=val;
+        displayImg(canvas,brightness(imageData,val,xxxxx));
     });
     <!--对比度调节-->
-    function contrast(){
-
+    function contrast(imgData,aveValue,valOfRange){
+        var pixels=imgData.data;
+        var n=pixels.length;
+        for (var i = 0; i < n; i+=4) {
+            var R=pixels[i];
+            var G=pixels[i+1];
+            var B=pixels[i+2];
+            var alpha=pixels[i+3];
+            pixels[i]=aveValue+(R-aveValue)*(1+valOfRange);
+            pixels[i+1]=aveValue+(G-aveValue)*(1+valOfRange);
+            pixels[i+2]=aveValue+(B-aveValue)*(1+valOfRange);
+        }
+        imgData.data=pixels;
+        return imgData;
     }<!--end对比度调节-->
+    $('.contrast').change(function(){
+        if(!lastValue) var lastValue=0;
+        var valOfRange=Number($(this).val());
+        valOfRange=valOfRange-lastValue;
+        lastValue=valOfRange;
+        var aveBrightness=AveBrightness(imageData);
+        displayImg(canvas,contrast(imageData,aveBrightness,valOfRange));
+    });
     <!--饱和度调节-->
-    function saturation(){
-
+    function saturation(imgData){
+        var valOfRange=Number($('.saturation').val());
+        var pixels=imgData.data;
+        var n=pixels.length;
+        for (var i = 0; i < n; i+=4) {
+            var R=pixels[i];
+            var G=pixels[i+1];
+            var B=pixels[i+2];
+            var alpha=pixels[i+3];
+            var HSL=rgbToHsl(R,G,B);
+            var H=HSL[0],S=HSL[1],L=HSL[2];
+            S = S * ( 1 + valOfRange);
+            var RGB=hslToRgb(H,S,L);
+            pixels[i]=RGB[0];
+            pixels[i+1]=RGB[1];
+            pixels[i+2]=RGB[2];
+        }
+        imgData.data=pixels;
+        return imgData;
     }<!--end饱和度调节-->
+    $('.saturation').change(function(){
+        displayImg(canvas,saturation(getSourceImg(img)));
+    });
 
 
     var hueToRgb_ = function(v1, v2, vH) {
@@ -418,7 +492,7 @@ $(document).ready(function(){
         }
         return v1;
     };
-     var rgbToHsl = function(r, g, b) {
+    var rgbToHsl = function(r, g, b) {
         // First must normalize r, g, b to be between 0 and 1.
         var normR = r / 255;
         var normG = g / 255;
