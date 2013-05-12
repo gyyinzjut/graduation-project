@@ -396,7 +396,7 @@ $(document).ready(function(){
         return total/(n/4);
     }//<!--end平均亮度计算-->
     <!--亮度调节-->
-    function brightness(imgData,valOfRange,xxxxx){
+    function brightness(imgData,valOfRange){
         var pixels=imgData.data;
         var n=pixels.length;
         for (var i = 0; i < n; i+=4) {
@@ -406,8 +406,7 @@ $(document).ready(function(){
             var alpha=pixels[i+3];
             var HSL=rgbToHsl(R,G,B);
             var H=HSL[0],S=HSL[1],L=HSL[2];
-            if(xxxxx==1){L=(1+valOfRange)/L}
-            else{L = L * ( 1 + valOfRange);}
+            L = L * ( 1 + valOfRange);
 
             var RGB=hslToRgb(H,S,L);
             pixels[i]=RGB[0];
@@ -417,15 +416,12 @@ $(document).ready(function(){
         imgData.data=pixels;
         return imgData;
     }<!--end亮度调节-->
-    var lastValue=0;
     $('.brightness').change(function(){
-        var xxxxx=0;
 //        if(!lastValue) var lastValue=0;
-        var val=Number($(this).val());
-        if(val>0&&val<lastValue) xxxxx=1;
-//        var valOfRange=val-lastValue;
-        lastValue=val;
-        displayImg(canvas,brightness(imageData,val,xxxxx));
+        var valOfRange=Number($(this).val());
+//        valOfRange=valOfRange-lastValue;
+//        lastValue=valOfRange;
+        displayImg(canvas,brightness(getSourceImg(img),valOfRange));
     });
     <!--对比度调节-->
     function contrast(imgData,aveValue,valOfRange){
@@ -444,12 +440,12 @@ $(document).ready(function(){
         return imgData;
     }<!--end对比度调节-->
     $('.contrast').change(function(){
-        if(!lastValue) var lastValue=0;
+//        if(!lastValue) var lastValue=0;
         var valOfRange=Number($(this).val());
-        valOfRange=valOfRange-lastValue;
-        lastValue=valOfRange;
+//        valOfRange=valOfRange-lastValue;
+//        lastValue=valOfRange;
         var aveBrightness=AveBrightness(imageData);
-        displayImg(canvas,contrast(imageData,aveBrightness,valOfRange));
+        displayImg(canvas,contrast(getSourceImg(img),aveBrightness,valOfRange));
     });
     <!--饱和度调节-->
     function saturation(imgData){
