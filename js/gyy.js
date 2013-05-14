@@ -1,4 +1,10 @@
 
+
+
+
+
+
+
 $(document).ready(function(){
     var canvas=$('#photo')[0],dataURL,img,imageData;
 //                var context=canvas.getContext("2d");
@@ -31,16 +37,7 @@ $(document).ready(function(){
             }
         }
     });<!--end上传图片-->
-    var Filter=function(canvas,imgData){
-        this.canvas=canvas;
-        this.imageData=imgData;
-    }
-    Filter.prototype={
-        constructor:Filter,
-        getSourceImg:function(){
-
-        }
-    }
+    
 
 
     <!--初始化-->
@@ -55,11 +52,14 @@ $(document).ready(function(){
             canvas.width = img.width;
             canvas.height = img.height;
             context.drawImage(img, 0, 0);
+            // $('.canvasBox').append(img);
             imageData=context.getImageData(0,0,img.width,img.height);
         };
         img.src=dataURL;
+        img.id='img';
         $('.control input').attr('disabled',false);
         $('.filter .dropdown-toggle').removeClass('disabled');
+        $('#original').removeClass('disabled');
     }<!--end初始化-->
     <!--恢复原图-->
     function getSourceImg(img){
@@ -94,6 +94,9 @@ $(document).ready(function(){
     $('#opposition').click(function(e){
         e.preventDefault();
         displayImg(canvas,opposition(getSourceImg(img)));
+        // clear(canvas);
+        // $('#img').pixastic("invert");
+
 
     });<!--end反相-->
     <!--黑白效果-->
@@ -117,6 +120,8 @@ $(document).ready(function(){
     $('#greyScale').click(function(e){
         e.preventDefault();
         displayImg(canvas,greyScale(getSourceImg(img)));
+        
+        // $('#img').pixastic("invert");
     });<!--end黑白效果-->
     <!--二值化-->
     function treshold(imgData,treshold){
